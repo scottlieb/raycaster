@@ -2,6 +2,20 @@ use crate::vectors::{Vector, V2d, from_polar, to_rad};
 
 use super::{WIDTH, HEIGHT};
 
+pub enum Ray {
+    V(V2d),
+    H(V2d),
+}
+
+impl Ray {
+    pub fn to_vec(&self) -> V2d {
+        match self {
+            Ray::V(v) => *v,
+            Ray::H(v) => *v,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Keys {
     pub w: bool,
@@ -45,17 +59,17 @@ impl Player {
         self.pos
     }
 
-    pub fn ray_cast(&self, offs: f64, map: &[u8]) -> V2d {
+    pub fn ray_cast(&self, offs: f64, map: &[u8]) -> Ray {
         let v_hit = self.ray_cast_v(offs, map);
         let h_hit = self.ray_cast_h(offs, map);
-        if self.pos().dist(v_hit) < self.pos().dist(h_hit) {
+        if self.pos().dist(v_hit.to_vec()) < self.pos().dist(h_hit.to_vec()) {
             v_hit
         } else {
             h_hit
         }
     }
 
-    fn ray_cast_v(&self, offs: f64, map: &[u8]) -> V2d {
+    fn ray_cast_v(&self, offs: f64, map: &[u8]) -> Ray {
         let mut dx: f64 = 10000.0;
         let mut dy: f64 = 10000.0;
 
@@ -115,10 +129,10 @@ impl Player {
             }
         }
 
-        return self.pos.add((dx, dy));
+        return Ray::V(self.pos.add((dx, dy)));
     }
 
-    fn ray_cast_h(&self, offs: f64, map: &[u8]) -> V2d {
+    fn ray_cast_h(&self, offs: f64, map: &[u8]) -> Ray {
         let mut dx: f64 = 10000.0;
         let mut dy: f64 = 10000.0;
 
@@ -178,13 +192,7 @@ impl Player {
             }
         }
 
-        return self.pos.add((dx, dy));
-    }
-
-    // Ray  returns a vector of length l representing
-    // the rotation of the player.
-    pub fn ray(&self, l: f64) -> V2d {
-        from_polar(l, self.rot)
+        return Ray::H(self.pos.add((dx, dy)));
     }
 
     fn step(&mut self, i: f64) {

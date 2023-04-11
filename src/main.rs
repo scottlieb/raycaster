@@ -7,6 +7,8 @@ use winit::{dpi::LogicalSize, event::{VirtualKeyCode, Event}, event_loop::{Contr
 const BLOCK_S: i32 = 64;
 const WIDTH: i32 = 8 * BLOCK_S;
 const HEIGHT: i32 = 8 * BLOCK_S;
+const SLICES: i32 = 64;
+const SLICE_W: i32 = WIDTH / SLICES;
 
 const MAP: [u8;64] = [
     1, 1, 1, 1, 1, 1, 1, 1,
@@ -20,7 +22,7 @@ const MAP: [u8;64] = [
 ];
 
 mod player;
-use crate::player::Player;
+use crate::player::{Player, Ray};
 
 mod vectors;
 
@@ -58,14 +60,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             let frame = pixels.frame_mut();
             for (_, pixel) in frame.chunks_exact_mut(4).enumerate() {
                 // background
-                let rgba = [0x5e, 0x48, 0xe8, 0xff];
+                let rgba = [0x55, 0x55, 0x55, 0xff];
                 pixel.copy_from_slice(&rgba);
             }
 
-            for i in 1..60 {
-                let offs = (i - 30) as f64;
-                let h = me.ray_cast(offs, &MAP);
-                pixel_at(frame, h.xi() as usize, h.yi() as usize, (0xff, 0xff, 0xff))
+            for i in 1..65 {
+                let offs = (i as i32 - 62) as f64;
+                let hit = me.ray_cast(offs, &MAP);
+                let dist = me.pos().dist(hit.to_vec());
+                let height = HEIGHT as f64 / (dist / 5.0 + 1.0).sqrt();
+                let mut col = (0xff, 0xff, 0xff);
+                if let Ray::H(_) = hit {
+                    col = (0xaa, 0xaa, 0xaa);
+                }
+                draw_slice(frame, i - 1, height as i32, col);
             }
 
             if let Err(err) = pixels.render() {
@@ -119,6 +127,18 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
     });
+}
+
+fn draw_slice(frame: &mut [u8], i: usize, height: i32, rgb: (u8, u8, u8)) {
+    let middle = HEIGHT / 2;
+    let bottom = middle - (height / 2);
+    let top = middle + (height / 2);
+    for y in bottom..top {
+        for mut x in 0..SLICE_W {
+            x = i as i32 * SLICE_W + x;
+            pixel_at(frame, x as usize, y as usize, rgb);
+        }
+    }
 }
 
 fn pixel_at(frame: &mut [u8], x: usize, y: usize, rgb: (u8, u8, u8)) {
