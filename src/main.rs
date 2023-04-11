@@ -1,6 +1,6 @@
 use std::{error::Error, time::SystemTime};
 use pixels::{SurfaceTexture, Pixels};
-use vectors::{V2d, Vector};
+use vectors::Vector;
 use winit_input_helper::WinitInputHelper;
 use winit::{dpi::LogicalSize, event::{VirtualKeyCode, Event}, event_loop::{ControlFlow, EventLoop}, window::WindowBuilder};
 
@@ -23,17 +23,6 @@ mod player;
 use crate::player::Player;
 
 mod vectors;
-
-fn is_wall((x, y): V2d) -> bool {
-    let idx = x as i32 / 64;
-    let idy = y as i32 / 64;
-    let id = 8 * idy + idx;
-    if MAP[id as usize] == 1 {
-        true
-    } else {
-        false
-    }
-}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let event_loop = EventLoop::new();
@@ -67,32 +56,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!("{:?}", me);
 
             let frame = pixels.frame_mut();
-            for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-                let pos = one_to_two(i);
-
+            for (_, pixel) in frame.chunks_exact_mut(4).enumerate() {
                 // background
-                let mut rgba = [0x5e, 0x48, 0xe8, 0xff];
-
-                // walls
-                if is_wall(pos) {
-                    rgba = [0x40, 0x00, 0x40, 0xff];
-                }
-
-                // lines
-                if pos.xi() % 64 == 0 || pos.yi() % 64 == 0 {
-                    rgba = [0x66, 0x66, 0x66, 0xff];
-                }
-
-                // player
-                if pos.dist(me.pos()) < 4.0 {
-                    rgba = [0x00, 0x00, 0x00, 0x00];
-                } else if me.pos().dist(pos) < 10.0 {
-                    // direction
-                    if me.ray(100.0).ang(pos.add(me.pos().scale(-1.0))) < 4.0 {
-                        rgba = [0x00, 0xff, 0x0f, 0xff];
-                    }
-                }
-
+                let rgba = [0x5e, 0x48, 0xe8, 0xff];
                 pixel.copy_from_slice(&rgba);
             }
 
@@ -161,11 +127,5 @@ fn pixel_at(frame: &mut [u8], x: usize, y: usize, rgb: (u8, u8, u8)) {
     frame[idx * 4 + 1] = rgb.1;
     frame[idx * 4 + 2] = rgb.2;
     frame[idx * 4 + 3] = 0xff;
-}
-
-fn one_to_two(i: usize) -> V2d {
-    let x = i % WIDTH as usize;
-    let y = i / HEIGHT as usize;
-    (x as f64, y as f64)
 }
 
