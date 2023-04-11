@@ -1,0 +1,124 @@
+use std::error::Error;
+use pixels::{SurfaceTexture, Pixels};
+use winit_input_helper::WinitInputHelper;
+use winit::{
+    dpi::LogicalSize,
+    event::{VirtualKeyCode, Event},
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+};
+
+const WIDTH: u32 = 500;
+const HEIGHT: u32 = 500;
+
+#[derive(Debug)]
+struct Me {
+    x: usize,
+    y: usize
+}
+
+impl Me {
+    fn new() -> Me {
+        Me {
+            x: WIDTH as usize / 2,
+            y: HEIGHT as usize / 2
+        }
+    }
+
+    fn mov(&mut self, x: i32, y: i32) {
+        let new_x = self.x as i32 + x;
+        let new_y = self.y as i32 + y;
+        if new_x < 0 || new_x >= WIDTH as i32 || new_y < 0 || new_y >= HEIGHT as i32 {
+            println!("BAD MOVE!");
+            return;
+        }
+
+        self.x = new_x as usize;
+        self.y = new_y as usize;
+    }
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let event_loop = EventLoop::new();
+    let mut input = WinitInputHelper::new();
+
+    let window = {
+        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        WindowBuilder::new()
+            .with_title("My Raycaster")
+            .with_min_inner_size(size)
+            .with_max_inner_size(size)
+            .build(&event_loop)
+            .unwrap()
+    };
+
+    let mut me = Me::new();
+
+    let mut pixels = {
+        let window_size = window.inner_size();
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+    };
+
+    event_loop.run(move |event, _, control_flow| {
+        // Draw the current frame
+        if let Event::RedrawRequested(_) = event {
+            let frame = pixels.frame_mut();
+            for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
+                let mut rgba = [0x5e, 0x48, 0xe8, 0xff];
+
+                let (x, y) = one_to_two(i);
+                if x > me.x - 2 && x < me.x + 2 && y > me.y -2 && y < me.y + 2 {
+                    rgba = [0x00, 0x00, 0x00, 0x00];
+                }
+
+                pixel.copy_from_slice(&rgba);
+            }
+            if let Err(err) = pixels.render() {
+                println!("Exiting due to error: {}", err.to_string());
+                return;
+            }
+        }
+
+        if input.update(&event) {
+            // Query keypresses this update
+            if input.key_pressed_os(VirtualKeyCode::W) {
+                me.mov(0, 5);
+                println!("{:?}", me);
+            }
+
+            if input.key_pressed_os(VirtualKeyCode::A) {
+                me.mov(-5, 0);
+                println!("{:?}", me);
+            }
+
+            if input.key_pressed_os(VirtualKeyCode::S) {
+                me.mov(0, -5);
+                println!("{:?}", me);
+            }
+
+            if input.key_pressed_os(VirtualKeyCode::D) {
+                me.mov(5, 0);
+                println!("{:?}", me);
+            }
+
+            // if input.key_pressed(VirtualKeyCode::A) {
+            //     println!("The 'A' key was pressed on the keyboard");
+            // }
+
+            if input.key_released(VirtualKeyCode::Q) || input.close_requested() || input.destroyed() {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
+
+            window.request_redraw();
+        }
+    });
+}
+
+
+fn one_to_two(i: usize) -> (usize, usize) {
+    let x = i % WIDTH as usize;
+    let y = i / HEIGHT as usize;
+    (x, y)
+}
