@@ -1,50 +1,50 @@
 use std::f64::consts::PI;
  
-pub type V2d = (i32, i32);
+pub type V2d = (f64, f64);
 
-const ZERO: V2d = (0, 0);
+const ZERO: V2d = (0.0, 0.0);
 
 pub trait Vector {
-    fn x(&self) -> i32;
+    fn xi(&self) -> i32;
 
-    fn y(&self) -> i32;
+    fn yi(&self) -> i32;
 
     fn dist(&self, other: Self) -> f64;
 
     fn abs(&self) -> f64;
 
-    fn dot(&self, other: Self) -> i32;
+    fn dot(&self, other: Self) -> f64;
 
-    fn ang(&self, other: Self) -> i32;
+    fn ang(&self, other: Self) -> f64;
 
     fn add(&self, other: Self) -> Self;
 
-    fn scale(&self, s: i32) -> Self;
+    fn scale(&self, s: f64) -> Self;
 }
 
 impl Vector for V2d {
-    fn x(&self) -> i32 {
-        self.0
+    fn xi(&self) -> i32 {
+        self.0 as i32
     }
 
-    fn y(&self) -> i32 {
-        self.1
+    fn yi(&self) -> i32 {
+        self.1 as i32
     }
 
     fn dist(&self, other: Self) -> f64 {
-        (((self.0-other.0).pow(2) + (self.1-other.1).pow(2)) as f64).sqrt() as f64
+        (((self.0-other.0).powf(2.0) + (self.1-other.1).powf(2.0))).sqrt()
     }
 
     fn abs(&self) -> f64 {
         self.dist(ZERO)
     }
 
-    fn dot(&self, other: Self) -> i32 {
+    fn dot(&self, other: Self) -> f64 {
         self.0*other.0 + self.1*other.1
     }
 
-    fn ang(&self, other: Self) -> i32 {
-        let ndot = self.dot(other) as f64 / (self.abs() * other.abs());
+    fn ang(&self, other: Self) -> f64 {
+        let ndot = self.dot(other) / (self.abs() * other.abs());
         to_deg(ndot.acos())
     }
 
@@ -52,23 +52,23 @@ impl Vector for V2d {
         (self.0 + other.0, self.1 + other.1)
     }
 
-    fn scale(&self, s: i32) -> Self {
+    fn scale(&self, s: f64) -> Self {
         (self.0 * s, self.1 * s)
     }
 }
 
 // Theta is given in degrees.
 // Note the resulting vector is rounded to the nearest integer.
-pub fn from_polar(r: i32, theta: i32) -> V2d {
-    let x = to_rad(theta).cos() * r as f64;
-    let y = to_rad(theta).sin() * r as f64;
-    (x as i32, y as i32)
+pub fn from_polar(r: f64, theta: f64) -> V2d {
+    let x = to_rad(theta).cos() * r;
+    let y = to_rad(theta).sin() * r;
+    (x, y)
 }
 
-fn to_deg(i: f64) -> i32 {
-    (i * (180.0 / PI)) as i32
+fn to_deg(i: f64) -> f64 {
+    i * (180.0 / PI)
 }
 
-fn to_rad(i: i32) -> f64 {
-    i as f64 * PI / 180.0
+pub fn to_rad(i: f64) -> f64 {
+    i * PI / 180.0
 }

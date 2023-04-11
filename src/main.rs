@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, time::SystemTime};
 use pixels::{SurfaceTexture, Pixels};
 use vectors::{V2d, Vector};
 use winit_input_helper::WinitInputHelper;
@@ -24,9 +24,9 @@ use crate::player::Player;
 
 mod vectors;
 
-fn is_wall((x, y): (i32, i32)) -> bool {
-    let idx = x / 64;
-    let idy = y / 64;
+fn is_wall((x, y): V2d) -> bool {
+    let idx = x as i32 / 64;
+    let idy = y as i32 / 64;
     let id = 8 * idy + idx;
     if MAP[id as usize] == 1 {
         true
@@ -57,9 +57,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture)?
     };
 
+    let mut last_frame_time = SystemTime::now();
     event_loop.run(move |event, _, control_flow| {
+
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
+            // Update the player
+            me.update();
+            println!("{:?}", me);
+
             let frame = pixels.frame_mut();
             for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
                 let pos = one_to_two(i);
@@ -73,25 +79,29 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
 
                 // lines
-                if pos.x() % 64 == 0 || pos.y() % 64 == 0 {
+                if pos.xi() % 64 == 0 || pos.yi() % 64 == 0 {
                     rgba = [0x66, 0x66, 0x66, 0xff];
                 }
 
                 // player
-                if pos.x() > me.pos().x() - 4
-                && pos.x() < me.pos().x() + 4
-                && pos.y() > me.pos().y() - 4
-                && pos.y() < me.pos().y() + 4 {
+                if pos.dist(me.pos()) < 4.0 {
                     rgba = [0x00, 0x00, 0x00, 0x00];
                 } else if me.pos().dist(pos) < 10.0 {
                     // direction
-                    if me.ray(100).ang(pos.add(me.pos().scale(-1))) < 5 {
+                    if me.ray(100.0).ang(pos.add(me.pos().scale(-1.0))) < 4.0 {
                         rgba = [0x00, 0xff, 0x0f, 0xff];
                     }
                 }
 
                 pixel.copy_from_slice(&rgba);
             }
+
+            for i in 1..60 {
+                let offs = (i - 30) as f64;
+                let h = me.ray_cast(offs, &MAP);
+                pixel_at(frame, h.xi() as usize, h.yi() as usize, (0xff, 0xff, 0xff))
+            }
+
             if let Err(err) = pixels.render() {
                 println!("Exiting due to error: {}", err.to_string());
                 return;
@@ -99,25 +109,29 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         if input.update(&event) {
-            // Query keypresses this update
-            if input.key_pressed_os(VirtualKeyCode::W) {
-                me.step(5);
-                println!("{:?}", me);
+            if input.key_pressed(VirtualKeyCode::W) {
+                me.keys.w = true;
             }
-
-            if input.key_pressed_os(VirtualKeyCode::A) {
-                me.rotate(-5);
-                println!("{:?}", me);
+            if input.key_released(VirtualKeyCode::W) {
+                me.keys.w = false;
             }
-
-            if input.key_pressed_os(VirtualKeyCode::S) {
-                me.step(-5);
-                println!("{:?}", me);
+            if input.key_pressed(VirtualKeyCode::A) {
+                me.keys.a = true;
             }
-
-            if input.key_pressed_os(VirtualKeyCode::D) {
-                me.rotate(5);
-                println!("{:?}", me);
+            if input.key_released(VirtualKeyCode::A) {
+                me.keys.a = false;
+            }
+            if input.key_pressed(VirtualKeyCode::S) {
+                me.keys.s = true;
+            }
+            if input.key_released(VirtualKeyCode::S) {
+                me.keys.s = false;
+            }
+            if input.key_pressed(VirtualKeyCode::D) {
+                me.keys.d = true;
+            }
+            if input.key_released(VirtualKeyCode::D) {
+                me.keys.d = false;
             }
 
             if input.key_released(VirtualKeyCode::Q) || input.close_requested() || input.destroyed() {
@@ -125,14 +139,33 @@ fn main() -> Result<(), Box<dyn Error>> {
                 return;
             }
 
-            window.request_redraw();
+            match last_frame_time.elapsed() {
+                Ok(t) => {
+                    if t.as_millis() > (1000 / 25) {
+                        window.request_redraw();
+                        last_frame_time = SystemTime::now();
+                    }
+                },
+                Err(err) => {
+                    println!("Exiting due to timing error: {}", err);
+                    return;
+                }
+            }
         }
     });
+}
+
+fn pixel_at(frame: &mut [u8], x: usize, y: usize, rgb: (u8, u8, u8)) {
+    let idx = y * WIDTH as usize + x;
+    frame[idx * 4] = rgb.0;
+    frame[idx * 4 + 1] = rgb.1;
+    frame[idx * 4 + 2] = rgb.2;
+    frame[idx * 4 + 3] = 0xff;
 }
 
 fn one_to_two(i: usize) -> V2d {
     let x = i % WIDTH as usize;
     let y = i / HEIGHT as usize;
-    (x as i32, y as i32)
+    (x as f64, y as f64)
 }
 
