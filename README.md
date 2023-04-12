@@ -13,4 +13,5 @@ This is a small pet-project for me to learn about Rust and computer graphics :)
 - Create ambient lighting TODO
 
 ### Screenshot
-
+At this point it's basically Unreal engine...
+<img src="resources/screenshot.png">
