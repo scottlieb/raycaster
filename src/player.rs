@@ -3,15 +3,22 @@ use crate::vectors::{Vector, V2d, from_polar, to_rad};
 use super::{WIDTH, HEIGHT};
 
 pub enum Ray {
-    V(V2d),
-    H(V2d),
+    V(V2d, f64),
+    H(V2d, f64),
 }
 
 impl Ray {
     pub fn to_vec(&self) -> V2d {
         match self {
-            Ray::V(v) => *v,
-            Ray::H(v) => *v,
+            Ray::V(v, _) => *v,
+            Ray::H(v, _) => *v,
+        }
+    }
+
+    pub fn to_dist(&self) -> f64 {
+        match self {
+            Ray::V(_, d) => *d,
+            Ray::H(_, d) => *d,
         }
     }
 }
@@ -87,7 +94,7 @@ impl Player {
             dy = theta_tan * dx;
 
             let y_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((1.0, 1.0)), map) {
+            while !is_wall(self.pos.add((dx, dy)).add((1.0, 0.0)), map) {
                 dx += 64.0;
                 dy += y_ofs;
             }
@@ -99,7 +106,7 @@ impl Player {
             dy = theta_tan * -dx;
 
             let y_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((-1.0, 1.0)), map) {
+            while !is_wall(self.pos.add((dx, dy)).add((-1.0, 0.0)), map) {
                 dx -= 64.0;
                 dy += y_ofs;
             }
@@ -111,7 +118,7 @@ impl Player {
             dy = theta_tan * dx;
 
             let y_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((-1.0, -1.0)), map) {
+            while !is_wall(self.pos.add((dx, dy)).add((-1.0, 0.0)), map) {
                 dx -= 64.0;
                 dy -= y_ofs;
             }
@@ -123,13 +130,15 @@ impl Player {
             dy = theta_tan * -dx;
 
             let y_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((1.0, -1.0)), map) {
+            while !is_wall(self.pos.add((dx, dy)).add((1.0, 0.0)), map) {
                 dx += 64.0;
                 dy -= y_ofs;
             }
         }
 
-        return Ray::V(self.pos.add((dx, dy)));
+        let v = self.pos.add((dx, dy));
+        let d = self.pos().dist(v) * to_rad(offs.abs()).cos();
+        return Ray::V(v, d);
     }
 
     fn ray_cast_h(&self, offs: f64, map: &[u8]) -> Ray {
@@ -150,7 +159,7 @@ impl Player {
             dx = theta_tan * dy;
 
             let x_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((1.0, 1.0)), map) {
+            while !is_wall(self.pos.add((dx, dy)).add((0.0, 1.0)), map) {
                 dx += x_ofs;
                 dy += 64.0;
             }
@@ -162,7 +171,7 @@ impl Player {
             dx = theta_tan * -dy;
 
             let x_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((-1.0, 1.0)), map) {
+            while !is_wall(self.pos.add((dx, dy)).add((0.0, 1.0)), map) {
                 dx -= x_ofs;
                 dy += 64.0;
             }
@@ -174,7 +183,7 @@ impl Player {
             dx = theta_tan * dy;
 
             let x_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((-1.0, -1.0)), map) {
+            while !is_wall(self.pos.add((dx, dy)).add((0.0, -1.0)), map) {
                 dx -= x_ofs;
                 dy -= 64.0;
             }
@@ -186,13 +195,15 @@ impl Player {
             dx = theta_tan * -dy;
 
             let x_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((1.0, -1.0)), map) {
+            while !is_wall(self.pos.add((dx, dy)).add((0.0, -1.0)), map) {
                 dx += x_ofs;
                 dy -= 64.0;
             }
         }
 
-        return Ray::H(self.pos.add((dx, dy)));
+        let v = self.pos.add((dx, dy));
+        let d = self.pos().dist(v) * to_rad(offs.abs()).cos();
+        return Ray::H(v, d);
     }
 
     fn step(&mut self, i: f64) {

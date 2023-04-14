@@ -67,10 +67,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             for i in 1..65 {
                 let offs = (i as i32 - 62) as f64;
                 let hit = me.ray_cast(offs, &MAP);
-                let dist = me.pos().dist(hit.to_vec());
-                let height = HEIGHT as f64 / (dist / 5.0 + 1.0).sqrt();
+                let dist = hit.to_dist();
+                let height = (2.0 * HEIGHT as f64 / dist.sqrt()).min(HEIGHT as f64);
                 let mut col = (0xff, 0xff, 0xff);
-                if let Ray::H(_) = hit {
+                if let Ray::H(_, _) = hit {
                     col = (0xaa, 0xaa, 0xaa);
                 }
                 draw_slice(frame, i - 1, height as i32, col);
