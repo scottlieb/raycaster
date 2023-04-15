@@ -1,7 +1,8 @@
-use crate::vectors::{Vector, V2d, from_polar, to_rad};
+use crate::vectors::{Vector, V2d, to_rad};
 
-use super::{WIDTH, HEIGHT};
+use super::{MAP_WIDTH, MAP_HEIGHT};
 
+#[allow(dead_code)]
 pub enum Ray {
     V(V2d, f64),
     H(V2d, f64),
@@ -15,6 +16,7 @@ impl Ray {
         }
     }
 
+    #[allow(dead_code)]
     pub fn to_dist(&self) -> f64 {
         match self {
             Ray::V(_, d) => *d,
@@ -33,17 +35,19 @@ pub struct Keys {
 
 #[derive(Debug)]
 pub struct Player {
+    pub keys: Keys,
     pos: V2d,
     rot: f64,
-    pub keys: Keys,
+    map: [u8;64]
 }
 
 impl Player {
-    pub fn new() -> Player {
+    pub fn new(map: [u8;64]) -> Player {
         Player {
-            pos: ((WIDTH / 2) as f64, (HEIGHT / 2) as f64),
+            pos: ((MAP_WIDTH / 2) as f64, (MAP_HEIGHT / 2) as f64),
             rot: 0.0,
-            keys: Keys { w: false, a: false, s: false, d: false }
+            keys: Keys { w: false, a: false, s: false, d: false },
+            map
         }
     }
 
@@ -207,13 +211,18 @@ impl Player {
     }
 
     fn step(&mut self, i: f64) {
-        self.pos = self.pos.add(from_polar(i, self.rot));
+        let dx = to_rad(self.rot).cos() * i;
+        let dy = to_rad(self.rot).sin() * i;
 
-        // Check bounds.
-        self.pos.0 = f64::max(self.pos.0, 5.0);
-        self.pos.0 = f64::min(self.pos.0, WIDTH as f64 - 5.0);
-        self.pos.1 = f64::max(self.pos.1, 5.0);
-        self.pos.1 = f64::min(self.pos.1, HEIGHT as f64 - 5.0);
+        let cush = 15.0 * dx.signum();
+        if !is_wall(self.pos.add((dx + cush, 0.0)), &self.map) {
+            self.pos = self.pos.add((dx, 0.0));
+        }
+
+        let cush = 15.0 * dy.signum();
+        if !is_wall(self.pos.add((0.0, dy + cush)), &self.map) {
+            self.pos = self.pos.add((0.0, dy));
+        }
     }
 
     fn rotate(&mut self, i: f64) {

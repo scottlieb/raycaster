@@ -57,14 +57,6 @@ impl Vector for V2d {
     }
 }
 
-// Theta is given in degrees.
-// Note the resulting vector is rounded to the nearest integer.
-pub fn from_polar(r: f64, theta: f64) -> V2d {
-    let x = to_rad(theta).cos() * r;
-    let y = to_rad(theta).sin() * r;
-    (x, y)
-}
-
 fn to_deg(i: f64) -> f64 {
     i * (180.0 / PI)
 }

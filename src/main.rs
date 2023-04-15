@@ -1,14 +1,16 @@
-use std::{error::Error, time::SystemTime};
+use std::{error::Error, time::SystemTime, f64::consts::PI};
 use pixels::{SurfaceTexture, Pixels};
-use vectors::Vector;
 use winit_input_helper::WinitInputHelper;
 use winit::{dpi::LogicalSize, event::{VirtualKeyCode, Event}, event_loop::{ControlFlow, EventLoop}, window::WindowBuilder};
 
 const BLOCK_S: i32 = 64;
-const WIDTH: i32 = 8 * BLOCK_S;
-const HEIGHT: i32 = 8 * BLOCK_S;
-const SLICES: i32 = 64;
-const SLICE_W: i32 = WIDTH / SLICES;
+const MAP_WIDTH: i32 = 8 * BLOCK_S;
+const MAP_HEIGHT: i32 = 8 * BLOCK_S;
+
+const SCREEN_WIDTH: i32 = 1024;
+const SCREEN_HEIGHT: i32 = 768;
+const SLICES: i32 = 256;
+const SLICE_W: i32 = SCREEN_WIDTH / SLICES;
 
 const MAP: [u8;64] = [
     1, 1, 1, 1, 1, 1, 1, 1,
@@ -31,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut input = WinitInputHelper::new();
 
     let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        let size = LogicalSize::new(SCREEN_WIDTH as f64, SCREEN_HEIGHT as f64);
         WindowBuilder::new()
             .with_title("My Raycaster")
             .with_min_inner_size(size)
@@ -40,12 +42,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             .unwrap()
     };
 
-    let mut me = Player::new();
+    let mut me = Player::new(MAP);
 
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture)?
+        Pixels::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, surface_texture)?
     };
 
     let mut last_frame_time = SystemTime::now();
@@ -55,7 +57,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         if let Event::RedrawRequested(_) = event {
             // Update the player
             me.update();
-            println!("{:?}", me);
 
             let frame = pixels.frame_mut();
             for (_, pixel) in frame.chunks_exact_mut(4).enumerate() {
@@ -64,16 +65,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                 pixel.copy_from_slice(&rgba);
             }
 
-            for i in 1..65 {
-                let offs = (i as i32 - 62) as f64;
-                let hit = me.ray_cast(offs, &MAP);
+            for i in 0..SLICES {
+
+                let offs = ((i + 1 as i32 - (SLICES / 2)) as f64 / 100.0).atan();
+                let hit = me.ray_cast(to_deg(offs), &MAP);
                 let dist = hit.to_dist();
-                let height = (2.0 * HEIGHT as f64 / dist.sqrt()).min(HEIGHT as f64);
+                let height = (20.0 * SCREEN_HEIGHT as f64 / dist).min(SCREEN_HEIGHT as f64);
                 let mut col = (0xff, 0xff, 0xff);
                 if let Ray::H(_, _) = hit {
                     col = (0xaa, 0xaa, 0xaa);
                 }
-                draw_slice(frame, i - 1, height as i32, col);
+                draw_slice(frame, i as usize, height as i32, col);
             }
 
             if let Err(err) = pixels.render() {
@@ -130,7 +132,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn draw_slice(frame: &mut [u8], i: usize, height: i32, rgb: (u8, u8, u8)) {
-    let middle = HEIGHT / 2;
+    let middle = SCREEN_HEIGHT / 2;
     let bottom = middle - (height / 2);
     let top = middle + (height / 2);
     for y in bottom..top {
@@ -142,10 +144,14 @@ fn draw_slice(frame: &mut [u8], i: usize, height: i32, rgb: (u8, u8, u8)) {
 }
 
 fn pixel_at(frame: &mut [u8], x: usize, y: usize, rgb: (u8, u8, u8)) {
-    let idx = y * WIDTH as usize + x;
+    let idx = y * SCREEN_WIDTH as usize + x;
     frame[idx * 4] = rgb.0;
     frame[idx * 4 + 1] = rgb.1;
     frame[idx * 4 + 2] = rgb.2;
     frame[idx * 4 + 3] = 0xff;
+}
+
+fn to_deg(i: f64) -> f64 {
+    i * (180.0 / PI)
 }
 
