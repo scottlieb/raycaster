@@ -1,7 +1,13 @@
 use std::{error::Error, time::SystemTime, f64::consts::PI};
+use graphics::{get_texture, Tex, Col, TEXTURE_SIZE};
 use pixels::{SurfaceTexture, Pixels};
+use player::{Player, Orientation};
 use winit_input_helper::WinitInputHelper;
 use winit::{dpi::LogicalSize, event::{VirtualKeyCode, Event}, event_loop::{ControlFlow, EventLoop}, window::WindowBuilder};
+
+mod player;
+mod vectors;
+mod graphics;
 
 const BLOCK_S: i32 = 64;
 const MAP_WIDTH: i32 = 8 * BLOCK_S;
@@ -22,11 +28,6 @@ const MAP: [u8;64] = [
     1, 0, 0, 1, 0, 0, 0, 1,
     1, 1, 1, 1, 1, 1, 1, 1,
 ];
-
-mod player;
-use crate::player::{Player, Ray};
-
-mod vectors;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let event_loop = EventLoop::new();
@@ -66,16 +67,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             for i in 0..SLICES {
-
                 let offs = ((i + 1 as i32 - (SLICES / 2)) as f64 / 100.0).atan();
                 let hit = me.ray_cast(to_deg(offs), &MAP);
-                let dist = hit.to_dist();
-                let height = (20.0 * SCREEN_HEIGHT as f64 / dist).min(SCREEN_HEIGHT as f64);
-                let mut col = (0xff, 0xff, 0xff);
-                if let Ray::H(_, _) = hit {
-                    col = (0xaa, 0xaa, 0xaa);
-                }
-                draw_slice(frame, i as usize, height as i32, col);
+                let dist = hit.to_dist(&me);
+                let height = (32.0 * SCREEN_HEIGHT as f64 / dist).min(SCREEN_HEIGHT as f64 * 10.0);
+                draw_slice(frame, i as usize, height as i32, hit.to_orientation(), hit.to_texture_offset());
             }
 
             if let Err(err) = pixels.render() {
@@ -131,11 +127,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 }
 
-fn draw_slice(frame: &mut [u8], i: usize, height: i32, rgb: (u8, u8, u8)) {
+fn draw_slice(frame: &mut [u8], i: usize, height: i32, orn: Orientation, texture_x: u8) {
     let middle = SCREEN_HEIGHT / 2;
-    let bottom = middle - (height / 2);
-    let top = middle + (height / 2);
+
+    let virt_bottom = middle - (height / 2);
+    let virt_top = middle + (height / 2);
+
+    let top = virt_top.min(SCREEN_HEIGHT);
+    let bottom = virt_bottom.max(0);
+
+    let texture = get_texture();
+
     for y in bottom..top {
+        let texture_y = (TEXTURE_SIZE as i32 * (y - virt_bottom) / (virt_top - virt_bottom)) as u8;
+
+        let mut rgb = texture.get_col(texture_x, texture_y);
+        if orn == Orientation::Vertical {
+            rgb = rgb.darken(0.8);
+        }
+
         for mut x in 0..SLICE_W {
             x = i as i32 * SLICE_W + x;
             pixel_at(frame, x as usize, y as usize, rgb);

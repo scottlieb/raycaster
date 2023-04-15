@@ -2,25 +2,61 @@ use crate::vectors::{Vector, V2d, to_rad};
 
 use super::{MAP_WIDTH, MAP_HEIGHT};
 
-#[allow(dead_code)]
-pub enum Ray {
-    V(V2d, f64),
-    H(V2d, f64),
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Orientation {
+    Horizontal,
+    Vertical
 }
 
-impl Ray {
+// Hit represents an intersection of a cast ray with a wall.
+pub struct Hit {
+    // Orientation of the intersecting wall (horizontal or vertical).
+    orn: Orientation,
+
+    // Point of intersection.
+    vec: V2d,
+
+    // Ray angle offs relative to the player looking direction (in radians).
+    offs_rad: f64,
+
+    // Ray angle rotation relative to the player (in degrees).
+    rot: f64
+}
+
+impl Hit {
+    // Returns the point of intersection of the ray hit.
     pub fn to_vec(&self) -> V2d {
-        match self {
-            Ray::V(v, _) => *v,
-            Ray::H(v, _) => *v,
-        }
+        self.vec
     }
 
+    // Returns the orthonormal distance from the ray hit to the player.
+    pub fn to_dist(&self, player: &Player) -> f64 {
+        player.pos().dist(self.vec) * to_rad(self.offs_rad.abs()).cos()
+    }
+
+    // Returns the orientation of the intersecting wall.
     #[allow(dead_code)]
-    pub fn to_dist(&self) -> f64 {
-        match self {
-            Ray::V(_, d) => *d,
-            Ray::H(_, d) => *d,
+    pub fn to_orientation(&self) -> Orientation {
+        self.orn
+    }
+
+    // Returns the relative offset of the hit within the block (for texture rendering).
+    pub fn to_texture_offset(&self) -> u8 {
+        match self.orn {
+            Orientation::Vertical => {
+                let mut t_offs = 64 - (self.vec.yi() % 64) as u8;
+                if self.rot < 90.0 || self.rot > 270.0 {
+                    t_offs = 64 - t_offs;
+                }
+                t_offs / 2
+            },
+            Orientation::Horizontal => {
+                let mut t_offs = (self.vec.xi() % 64) as u8;
+                if self.rot < 180.0 {
+                    t_offs = 64 - t_offs;
+                }
+                t_offs / 2
+            },
         }
     }
 }
@@ -70,9 +106,12 @@ impl Player {
         self.pos
     }
 
-    pub fn ray_cast(&self, offs: f64, map: &[u8]) -> Ray {
+    pub fn ray_cast(&self, offs: f64, map: &[u8]) -> Hit {
         let v_hit = self.ray_cast_v(offs, map);
         let h_hit = self.ray_cast_h(offs, map);
+
+        // Note: we take the shortest vector base on euclidian distance.
+        // (As opposed to the orthonormal distance returned by the ray)
         if self.pos().dist(v_hit.to_vec()) < self.pos().dist(h_hit.to_vec()) {
             v_hit
         } else {
@@ -80,7 +119,7 @@ impl Player {
         }
     }
 
-    fn ray_cast_v(&self, offs: f64, map: &[u8]) -> Ray {
+    fn ray_cast_v(&self, offs: f64, map: &[u8]) -> Hit {
         let mut dx: f64 = 10000.0;
         let mut dy: f64 = 10000.0;
 
@@ -117,11 +156,10 @@ impl Player {
         }
 
         let v = self.pos.add((dx, dy));
-        let d = self.pos().dist(v) * to_rad(offs.abs()).cos();
-        return Ray::V(v, d);
+        Hit { orn: Orientation::Vertical, vec: v, rot, offs_rad: offs }
     }
 
-    fn ray_cast_h(&self, offs: f64, map: &[u8]) -> Ray {
+    fn ray_cast_h(&self, offs: f64, map: &[u8]) -> Hit {
         let mut dx: f64 = 10000.0;
         let mut dy: f64 = 10000.0;
 
@@ -158,8 +196,7 @@ impl Player {
         }
 
         let v = self.pos.add((dx, dy));
-        let d = self.pos().dist(v) * to_rad(offs.abs()).cos();
-        return Ray::H(v, d);
+        Hit { orn: Orientation::Horizontal, vec: v, rot, offs_rad: offs }
     }
 
     fn step(&mut self, i: f64) {
