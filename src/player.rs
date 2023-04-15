@@ -92,7 +92,7 @@ impl Player {
             rot -= 360.0
         }
 
-        if rot >= 0.0 && rot < 90.0 {
+        if rot < 90.0 || rot > 270.0 {
             let theta_tan = to_rad(rot).tan();
             dx = 64.0 - self.pos.0.rem_euclid(64.0);
             dy = theta_tan * dx;
@@ -104,7 +104,7 @@ impl Player {
             }
         }
 
-        if rot > 90.0 && rot < 180.0 {
+        if rot > 90.0 && rot < 270.0 {
             let theta_tan = to_rad(180.0 - rot).tan();
             dx = -self.pos.0.rem_euclid(64.0);
             dy = theta_tan * -dx;
@@ -113,30 +113,6 @@ impl Player {
             while !is_wall(self.pos.add((dx, dy)).add((-1.0, 0.0)), map) {
                 dx -= 64.0;
                 dy += y_ofs;
-            }
-        }
-
-        if rot >= 180.0 && rot < 270.0 {
-            let theta_tan = to_rad(rot - 180.0).tan();
-            dx = -self.pos.0.rem_euclid(64.0);
-            dy = theta_tan * dx;
-
-            let y_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((-1.0, 0.0)), map) {
-                dx -= 64.0;
-                dy -= y_ofs;
-            }
-        }
-
-        if rot > 270.0 {
-            let theta_tan = to_rad(180.0 - rot).tan();
-            dx = 64.0 - self.pos.0.rem_euclid(64.0);
-            dy = theta_tan * -dx;
-
-            let y_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((1.0, 0.0)), map) {
-                dx += 64.0;
-                dy -= y_ofs;
             }
         }
 
@@ -157,7 +133,7 @@ impl Player {
             rot -= 360.0
         }
 
-        if rot > 0.0 && rot <= 90.0 {
+        if rot < 180.0 {
             let theta_tan = to_rad(90.0 - rot).tan();
             dy = 64.0 - self.pos.1.rem_euclid(64.0);
             dx = theta_tan * dy;
@@ -169,19 +145,7 @@ impl Player {
             }
         }
 
-        if rot > 90.0 && rot < 180.0 {
-            let theta_tan = to_rad(rot - 90.0).tan();
-            dy = 64.0 - self.pos.1.rem_euclid(64.0);
-            dx = theta_tan * -dy;
-
-            let x_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((0.0, 1.0)), map) {
-                dx -= x_ofs;
-                dy += 64.0;
-            }
-        }
-
-        if rot > 180.0 && rot <= 270.0 {
+        if rot > 180.0 {
             let theta_tan = to_rad(270.0 - rot).tan();
             dy = -self.pos.1.rem_euclid(64.0);
             dx = theta_tan * dy;
@@ -189,18 +153,6 @@ impl Player {
             let x_ofs = theta_tan * 64.0;
             while !is_wall(self.pos.add((dx, dy)).add((0.0, -1.0)), map) {
                 dx -= x_ofs;
-                dy -= 64.0;
-            }
-        }
-
-        if rot > 270.0 {
-            let theta_tan = to_rad(rot - 270.0).tan();
-            dy = -self.pos.1.rem_euclid(64.0);
-            dx = theta_tan * -dy;
-
-            let x_ofs = theta_tan * 64.0;
-            while !is_wall(self.pos.add((dx, dy)).add((0.0, -1.0)), map) {
-                dx += x_ofs;
                 dy -= 64.0;
             }
         }
