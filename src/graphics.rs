@@ -1,60 +1,21 @@
-pub const TEXTURE_SIZE: usize = 32;
-const B: Colour = (0x22, 0x22, 0x22);
-const W: Colour = (0xee, 0xee, 0xee);
+use image::{DynamicImage, GenericImageView, Pixel};
 
-const TEXTURE_1: Texture = [
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-    W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, B, B, B, B, B, B, B, B, 
-];
-
+pub const TEXTURE_SIZE: usize = 64;
 type Colour = (u8, u8, u8);
-type Texture =  [Colour; TEXTURE_SIZE * TEXTURE_SIZE];
 
-pub fn get_texture() -> Texture {
-    TEXTURE_1
+pub fn get_texture() -> image::DynamicImage {
+    image::open("resources/greystone.png").unwrap()
 }
 
 pub trait Tex {
     fn get_col(&self, x: u8, y: u8) -> Colour;
 }
 
-impl Tex for Texture {
+impl Tex for DynamicImage {
     fn get_col(&self, x: u8, y: u8) -> Colour {
-        let idx = y as usize * TEXTURE_SIZE + x as usize;
-        if idx >= 1024 {
-            return B;
-        }
-        self[idx]
+        let p = self.get_pixel(x as u32, y as u32);
+        let rgb = p.to_rgb();
+        (rgb[0], rgb[1], rgb[2])
     }
 }
 

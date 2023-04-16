@@ -44,18 +44,18 @@ impl Hit {
     pub fn to_texture_offset(&self) -> u8 {
         match self.orn {
             Orientation::Vertical => {
-                let mut t_offs = 64 - (self.vec.yi() % 64) as u8;
+                let mut t_offs = 63 - (self.vec.yi() % 64) as u8;
                 if self.rot < 90.0 || self.rot > 270.0 {
-                    t_offs = 64 - t_offs;
+                    t_offs = 63 - t_offs;
                 }
-                t_offs / 2
+                t_offs
             },
             Orientation::Horizontal => {
                 let mut t_offs = (self.vec.xi() % 64) as u8;
                 if self.rot < 180.0 {
-                    t_offs = 64 - t_offs;
+                    t_offs = 63 - t_offs;
                 }
-                t_offs / 2
+                t_offs
             },
         }
     }
