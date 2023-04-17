@@ -1,5 +1,6 @@
 use std::{error::Error, time::SystemTime, f64::consts::PI};
 use graphics::{get_texture, Tex, Col, TEXTURE_SIZE};
+use image::DynamicImage;
 use pixels::{SurfaceTexture, Pixels};
 use player::{Player, Orientation};
 use winit_input_helper::WinitInputHelper;
@@ -15,7 +16,7 @@ const MAP_HEIGHT: i32 = 8 * BLOCK_S;
 
 const SCREEN_WIDTH: i32 = 1024;
 const SCREEN_HEIGHT: i32 = 768;
-const SLICES: i32 = 256;
+const SLICES: i32 = SCREEN_WIDTH;
 const SLICE_W: i32 = SCREEN_WIDTH / SLICES;
 
 const MAP: [u8;64] = [
@@ -44,6 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let mut me = Player::new(MAP);
+    let texture = get_texture();
 
     let mut pixels = {
         let window_size = window.inner_size();
@@ -67,11 +69,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             for i in 0..SLICES {
-                let offs = ((i + 1 as i32 - (SLICES / 2)) as f64 / 100.0).atan();
+                let offs = ((i + 1 as i32 - (SLICES / 2)) as f64 / 1000.0).atan();
                 let hit = me.ray_cast(to_deg(offs), &MAP);
                 let dist = hit.to_dist(&me);
-                let height = (32.0 * SCREEN_HEIGHT as f64 / dist).min(SCREEN_HEIGHT as f64 * 10.0);
-                draw_slice(frame, i as usize, height as i32, hit.to_orientation(), hit.to_texture_offset());
+                let height = (64.0 * SCREEN_HEIGHT as f64 / dist).min(SCREEN_HEIGHT as f64 * 10.0);
+                draw_slice(frame, i as usize, height as i32, hit.to_orientation(), hit.to_texture_offset(), &texture);
             }
 
             if let Err(err) = pixels.render() {
@@ -127,7 +129,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 }
 
-fn draw_slice(frame: &mut [u8], i: usize, height: i32, orn: Orientation, texture_x: u8) {
+fn draw_slice(frame: &mut [u8], i: usize, height: i32, orn: Orientation, texture_x: u8, texture: &DynamicImage) {
     let middle = SCREEN_HEIGHT / 2;
 
     let virt_bottom = middle - (height / 2);
@@ -135,8 +137,6 @@ fn draw_slice(frame: &mut [u8], i: usize, height: i32, orn: Orientation, texture
 
     let top = virt_top.min(SCREEN_HEIGHT);
     let bottom = virt_bottom.max(0);
-
-    let texture = get_texture();
 
     for y in bottom..top {
         let texture_y = (TEXTURE_SIZE as i32 * (y - virt_bottom) / (virt_top - virt_bottom)) as u8;

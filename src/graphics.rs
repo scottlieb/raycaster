@@ -4,7 +4,7 @@ pub const TEXTURE_SIZE: usize = 64;
 type Colour = (u8, u8, u8);
 
 pub fn get_texture() -> image::DynamicImage {
-    image::open("resources/greystone.png").unwrap()
+    image::open("resources/mossy.png").unwrap()
 }
 
 pub trait Tex {
